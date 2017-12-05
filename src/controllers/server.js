@@ -139,8 +139,9 @@ class Server extends EventEmitter {
     }
 
     setPermissions(next) {
-        this.log.debug('Setting correct ownership of server files.');
-        this.fs.chown('/', next);
+        this.log.debug('Not setting correct ownership of server files.');
+        //this.fs.chown('/', next);
+        next();
     }
 
     setStatus(status) {
@@ -181,20 +182,20 @@ class Server extends EventEmitter {
         }
 
         switch (status) {
-        case Status.OFF:
-            this.emit('console', `${Ansi.style.cyan}(Daemon) Server marked as ${Ansi.style.bold}OFF`);
-            break;
-        case Status.ON:
-            this.emit('console', `${Ansi.style.cyan}(Daemon) Server marked as ${Ansi.style.bold}ON`);
-            break;
-        case Status.STARTING:
-            this.emit('console', `${Ansi.style.cyan}(Daemon) Server marked as ${Ansi.style.bold}STARTING`);
-            break;
-        case Status.STOPPING:
-            this.emit('console', `${Ansi.style.cyan}(Daemon) Server marked as ${Ansi.style.bold}STOPPING`);
-            break;
-        default:
-            break;
+            case Status.OFF:
+                this.emit('console', `${Ansi.style.cyan}(Daemon) Server marked as ${Ansi.style.bold}OFF`);
+                break;
+            case Status.ON:
+                this.emit('console', `${Ansi.style.cyan}(Daemon) Server marked as ${Ansi.style.bold}ON`);
+                break;
+            case Status.STARTING:
+                this.emit('console', `${Ansi.style.cyan}(Daemon) Server marked as ${Ansi.style.bold}STARTING`);
+                break;
+            case Status.STOPPING:
+                this.emit('console', `${Ansi.style.cyan}(Daemon) Server marked as ${Ansi.style.bold}STOPPING`);
+                break;
+            default:
+                break;
         }
 
         this.log.info(`Server status has been changed to ${inverted[status]}`);
@@ -382,11 +383,13 @@ class Server extends EventEmitter {
 
             if (this.shouldRestart) {
                 this.shouldRestart = false;
-                this.start(err => {
-                    if (err && !_.includes(err.message, 'Server is currently queued for a container rebuild') && !_.includes(err.message, 'Server container was not found and needs to be rebuilt.')) {
-                        this.log.error(err);
-                    }
-                });
+                setTimeout(function(){
+                    this.start(err => {
+                        if (err && !_.includes(err.message, 'Server is currently queued for a container rebuild') && !_.includes(err.message, 'Server container was not found and needs to be rebuilt.')) {
+                            this.log.error(err);
+                        }
+                    });
+                }, 2500);
             }
             return;
         }
@@ -488,13 +491,13 @@ class Server extends EventEmitter {
 
         const deltaTotal = cycle.cpu_usage.total_usage - priorCycle.cpu_usage.total_usage;
         const deltaSystem = cycle.system_cpu_usage - priorCycle.system_cpu_usage;
-        const totalUsage = (deltaTotal / deltaSystem) * cycle.cpu_usage.percpu_usage.length * 100;
+        const totalUsage = (deltaTotal / deltaSystem) * totalCores.length * 100;
 
         Async.forEachOf(cycle.cpu_usage.percpu_usage, (cpu, index, callback) => {
             if (_.isObject(priorCycle.cpu_usage.percpu_usage) && index in priorCycle.cpu_usage.percpu_usage) {
                 const priorCycleCpu = priorCycle.cpu_usage.percpu_usage[index];
                 const deltaCore = cpu - priorCycleCpu;
-                perCoreUsage.push(parseFloat(((deltaCore / deltaSystem) * cycle.cpu_usage.percpu_usage.length * 100).toFixed(3).toString()));
+                perCoreUsage.push(parseFloat(((deltaCore / deltaSystem) * totalCores.length * 100).toFixed(3).toString()));
             }
             callback();
         }, () => {

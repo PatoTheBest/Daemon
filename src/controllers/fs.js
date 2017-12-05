@@ -69,28 +69,35 @@ class FileSystem {
     }
 
     size(next) {
-        const Exec = Process.spawn('du', ['-hsb', this.server.path()], {});
+        // MegaPlanet - start
+        //const Exec = Process.spawn('du', ['-hsb', this.server.path()], {});
+        next(null, 0);
 
-        Exec.stdout.on('data', data => {
-            next(null, parseInt(_.split(data.toString(), '\t')[0], 10));
-        });
+        //Exec.stdout.on('data', data => {
+        //    next(null, parseInt(_.split(data.toString(), '\t')[0], 10));
+        //});
 
-        Exec.on('error', execErr => {
-            this.server.log.error(execErr);
-            return next(new Error('There was an error while attempting to check the size of the server data folder.'));
-        });
+        //Exec.on('error', execErr => {
+        //    this.server.log.error(execErr);
+        //    return next(new Error('There was an error while attempting to check the size of the server data folder.'));
+        //});
 
-        Exec.on('exit', (code, signal) => {
-            if (code !== 0) {
-                return next(new Error(`Unable to determine size of server data folder, exited with code ${code} signal ${signal}.`));
-            }
-        });
+        //Exec.on('exit', (code, signal) => {
+        //    if (code !== 0) {
+        //        return next(new Error(`Unable to determine size of server data folder, exited with code ${code} signal ${signal}.`));
+        //    }
+        //});
+        // MegaPlanet - end
     }
 
     chown(file, next) {
         let chownTarget = file;
         if (!_.startsWith(chownTarget, this.server.path())) {
             chownTarget = this.server.path(file);
+        }
+
+        if(this.server.json.build.user === 'root') {
+            return next();
         }
 
         const Exec = Process.spawn('chown', ['-R', Util.format('%d:%d', this.server.json.build.user, this.server.json.build.user), chownTarget], {});
