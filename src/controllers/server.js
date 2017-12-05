@@ -383,13 +383,16 @@ class Server extends EventEmitter {
 
             if (this.shouldRestart) {
                 this.shouldRestart = false;
+                this.emit('console', `${Ansi.style.cyan}(Daemon) Delaying restart to prevent issues with docker streams not being fully closed.`);
+
+                var self = this;
                 setTimeout(function(){
-                    this.start(err => {
+                    self.start(err => {
                         if (err && !_.includes(err.message, 'Server is currently queued for a container rebuild') && !_.includes(err.message, 'Server container was not found and needs to be rebuilt.')) {
                             this.log.error(err);
                         }
                     });
-                }, 2500);
+                }, 1500);
             }
             return;
         }
@@ -488,6 +491,8 @@ class Server extends EventEmitter {
         const perCoreUsage = [];
         const priorCycle = self.docker.procData.precpu_stats;
         const cycle = self.docker.procData.cpu_stats;
+        const totalCores = _.get(cycle, 'cpu_usage.percpu_usage', { test: 1 });
+
 
         const deltaTotal = cycle.cpu_usage.total_usage - priorCycle.cpu_usage.total_usage;
         const deltaSystem = cycle.system_cpu_usage - priorCycle.system_cpu_usage;
